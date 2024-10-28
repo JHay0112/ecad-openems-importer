@@ -11,6 +11,7 @@ import ctypes
 from src.ecad_intf.board import Board
 from src.ecad_intf.layer import Layer
 from src.ecad_intf.zone import Zone
+from src.ecad_intf.footprint import Footprint
 from src.ecad_intf.pad import Pad
 from src.ecad_intf.track import Track, Segment
 from src.ecad_intf.via import Via
@@ -19,6 +20,7 @@ from src.shapes.shape import Shape
 from src.shapes.compound import CompoundShape
 from src.shapes.rectangle import Rectangle
 from src.shapes.circle import Circle
+from src.shapes.polygon import Polygon
 
 
 
@@ -53,7 +55,8 @@ class KiCAD7Board(Board):
             for sub_shape in kicad_shape.GetSubshapes():
 
                 shape = cls.__convert_shape(sub_shape)
-                shapes.append(shape)
+                if shape is not None:
+                    shapes.append(shape)
 
             compound_shape = CompoundShape(shapes)
 
@@ -85,6 +88,27 @@ class KiCAD7Board(Board):
 
             shape = Circle(centre, radius)
             return shape
+        
+        
+        if isinstance(kicad_shape, pcbnew.SHAPE_SIMPLE):
+            # Polygon!
+            points = []
+            
+            for i in range(kicad_shape.GetPointCount()):
+                point = kicad_shape.GetPoint(i)
+                point = [cls.__to_mm(val) for val in point]
+                points.append(point)
+
+            return Polygon(points)
+        
+
+        if isinstance(kicad_shape, pcbnew.SHAPE_ARC):
+
+            return None
+        
+        if isinstance(kicad_shape, pcbnew.SHAPE_SEGMENT):
+
+            return None
         
         raise ValueError(f"Shape of type \"{type(kicad_shape)}\" passed to __convert_shape is not handled.")
     
@@ -160,6 +184,20 @@ class KiCAD7Board(Board):
     def get_zones(self) -> list[Zone]:
 
         ...
+
+
+    def get_footprints(self) -> list[Footprint]:
+
+        kicad_fps = self.board.GetFootprints()
+        fps = [Footprint() for _ in kicad_fps]
+
+        for i, fp in enumerate(kicad_fps):
+
+            fps[i].shape = self.__convert_shape(fp.GetEffectiveShape())
+            fps[i].reference = fp.GetReference()
+            fps[i].layer_id = fp.GetLayer()
+
+        return fps
 
 
     def get_pads(self) -> list[Pad]:

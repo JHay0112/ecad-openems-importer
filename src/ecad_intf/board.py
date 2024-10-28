@@ -13,6 +13,7 @@ import os
 
 from src.ecad_intf.layer import Layer
 from src.ecad_intf.zone import Zone
+from src.ecad_intf.footprint import Footprint
 from src.ecad_intf.pad import Pad
 from src.ecad_intf.track import Track
 from src.ecad_intf.via import Via
@@ -107,6 +108,19 @@ class Board(ABC):
         -------
 
         list[Zone]
+        """
+        ...
+
+
+    @abstractmethod
+    def get_footprints(self) -> list[Footprint]:
+        """
+        Returns a list of footprints.
+
+        Returns
+        -------
+
+        list[Footprint]
         """
         ...
 
