@@ -196,6 +196,7 @@ class KiCAD7Board(Board):
             fps[i].shape = self.__convert_shape(fp.GetEffectiveShape())
             fps[i].reference = fp.GetReference()
             fps[i].layer_id = fp.GetLayer()
+            fps[i].pads = [pad.GetName() for pad in fp.Pads()]
 
         return fps
 
@@ -207,6 +208,7 @@ class KiCAD7Board(Board):
 
         for i, pad in enumerate(kicad_pads):
 
+            pads[i].name = pad.GetName()
             pads[i].shape = self.__convert_shape(pad.GetEffectiveShape())
             pads[i].net = pad.GetNetname()
             pads[i].layer_id = pad.GetPrincipalLayer()

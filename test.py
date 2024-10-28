@@ -35,7 +35,6 @@ board: Board = KiCAD7Board.load_from_file(INPUT_BOARD)
 bbox = board.get_bounding_box()
 layers = board.get_layers()
 footprints = board.get_footprints()
-pads = board.get_pads()
 tracks = board.get_tracks()
 
 
@@ -44,7 +43,7 @@ csx = ContinuousStructure()
 
 layer_map = {layer.id: layer for layer in layers}
 
-nets = set(feature.net for feature in tracks + pads)
+nets = set(feature.net for feature in tracks)
 net_map = {net: csx.AddMetal(net) for net in nets}
 
 
@@ -79,31 +78,6 @@ for track in tracks:
         copper.AddPolygon(np.array(end_circle).T, "z", layer.depth)
 
         points = np.array([start + perp, start - perp, end - perp, end + perp]).T
-
-        copper.AddPolygon(points, "z", layer.depth)
-
-
-for pad in pads:
-
-    if pad.shape is None:
-        continue
-
-    copper = net_map[pad.net]
-
-
-    if isinstance(pad.shape, CompoundShape):
-
-        for shape in pad.shape:
-
-            points = np.array(shape.polygon()).T
-            layer = layer_map[pad.layer_id]
-
-            copper.AddPolygon(points, "z", layer.depth)
-
-    else:
-
-        points = np.array(pad.shape.polygon()).T
-        layer = layer_map[pad.layer_id]
 
         copper.AddPolygon(points, "z", layer.depth)
 

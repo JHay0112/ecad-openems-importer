@@ -20,4 +20,4 @@ class Footprint:
         self.shape: Shape | CompoundShape = None
         self.reference: str = None
         self.layer_id: str = None
-        self.pads 
+        self.pads: list[str] = None

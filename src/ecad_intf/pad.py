@@ -17,6 +17,7 @@ class Pad:
     
     def __init__(self):
         
+        self.name: str = None
         self.shape: Shape | CompoundShape = None
         self.net: str = None
         self.layer_id: str = None
