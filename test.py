@@ -1,5 +1,6 @@
 from src.ecad_impl.kicad7 import KiCAD7Board
 from src.ecad_intf.board import Board
+from src.shapes.circle import Circle
 
 from CSXCAD import ContinuousStructure
 from openEMS.physical_constants import *
@@ -28,13 +29,21 @@ def polygon_circle(centre: tuple[float, float], radius: float, edges: int) -> li
 board: Board = KiCAD7Board.load_from_file(INPUT_BOARD)
 
 
+
 bbox = board.get_bounding_box()
-tracks = board.get_tracks()
 layers = board.get_layers()
-layer_map = {layer.id: layer for layer in layers}
+pads = board.get_pads()
+tracks = board.get_tracks()
 
 
 csx = ContinuousStructure()
+
+
+layer_map = {layer.id: layer for layer in layers}
+
+nets = set(feature.net for feature in tracks + pads)
+net_map = {net: csx.AddMetal(net) for net in nets}
+
 
 substrate = csx.AddMaterial("board", epsilon = SUBSTR_EPS_R, kappa = SUBSTR_KAPPA)
 substrate.AddBox(*bbox)
@@ -42,7 +51,7 @@ substrate.AddBox(*bbox)
 
 for track in tracks:
 
-    copper = csx.AddMetal(track.net)
+    copper = net_map[track.net]
     
     for segment in track.segments:
 
@@ -61,14 +70,24 @@ for track in tracks:
         start = np.array([segment.start[0], segment.start[1]])
         end = np.array([segment.end[0], segment.end[1]])
 
-        start_circle = polygon_circle(start, segment.width/2, 100)
+        start_circle = Circle(start, segment.width/2).polygon()
         copper.AddPolygon(np.array(start_circle).T, "z", layer.depth)
-        end_circle = polygon_circle(end, segment.width/2, 100)
+        end_circle = Circle(end, segment.width/2).polygon()
         copper.AddPolygon(np.array(end_circle).T, "z", layer.depth)
 
         points = np.array([start + perp, start - perp, end - perp, end + perp]).T
 
         copper.AddPolygon(points, "z", layer.depth)
+
+
+for pad in pads:
+
+    copper = net_map[pad.net]
+
+    points = np.array(pad.shape.polygon()).T
+    layer = layer_map[pad.layer_id]
+
+    copper.AddPolygon(points, "z", layer.depth)
 
 
 

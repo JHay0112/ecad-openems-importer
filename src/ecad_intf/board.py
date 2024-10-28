@@ -13,6 +13,7 @@ import os
 
 from src.ecad_intf.layer import Layer
 from src.ecad_intf.zone import Zone
+from src.ecad_intf.pad import Pad
 from src.ecad_intf.track import Track
 from src.ecad_intf.via import Via
 
@@ -106,6 +107,19 @@ class Board(ABC):
         -------
 
         list[Zone]
+        """
+        ...
+
+
+    @abstractmethod
+    def get_pads(self) -> list[Pad]:
+        """
+        Returns a list of pads.
+
+        Returns
+        -------
+
+        list[Pad]
         """
         ...
 

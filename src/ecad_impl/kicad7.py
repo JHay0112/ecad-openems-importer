@@ -11,8 +11,13 @@ import ctypes
 from src.ecad_intf.board import Board
 from src.ecad_intf.layer import Layer
 from src.ecad_intf.zone import Zone
+from src.ecad_intf.pad import Pad
 from src.ecad_intf.track import Track, Segment
 from src.ecad_intf.via import Via
+
+from src.shapes.shape import Shape
+from src.shapes.rectangle import Rectangle
+from src.shapes.circle import Circle
 
 
 
@@ -28,6 +33,51 @@ class KiCAD7Board(Board):
     def __to_mm(_, x: float) -> float:
         """Private method for converting KiCAD values to mm."""
         return x / 1_000_000
+    
+
+    @classmethod
+    def __convert_shape(cls, kicad_shape) -> Shape:
+        """Private method for convering KiCAD shapes into valid shapes."""
+
+
+        # Deal with shapes that haven't been cast yet
+        if isinstance(kicad_shape, pcbnew.SHAPE):
+            kicad_shape = kicad_shape.Cast()
+        
+        if isinstance(kicad_shape, pcbnew.SHAPE_COMPOUND):
+
+            # Basic approach. Get first shape and roll with it.
+            shape = cls.__convert_shape(kicad_shape.GetSubshapes()[0])
+            return shape
+
+        if isinstance(kicad_shape, pcbnew.SHAPE_RECT):
+
+            pos = kicad_shape.GetPosition()
+            width = kicad_shape.GetWidth()
+            height = kicad_shape.GetHeight()
+
+            pos = [cls.__to_mm(val) for val in pos]
+            width = cls.__to_mm(width)
+            height = cls.__to_mm(height)
+
+            start = [pos[0], pos[1]]
+            end = [pos[0] + width, pos[1] + height]
+            shape = Rectangle(start, end)
+
+            return shape
+
+        if isinstance(kicad_shape, pcbnew.SHAPE_CIRCLE):
+
+            centre = kicad_shape.GetCenter()
+            radius = kicad_shape.GetRadius()
+
+            centre = [cls.__to_mm(val) for val in centre]
+            radius = cls.__to_mm(radius)
+
+            shape = Circle(centre, radius)
+            return shape
+        
+        raise ValueError(f"Shape of type \"{type(kicad_shape)}\" passed to __convert_shape is not handled.")
     
 
     @classmethod
@@ -101,6 +151,20 @@ class KiCAD7Board(Board):
     def get_zones(self) -> list[Zone]:
 
         ...
+
+
+    def get_pads(self) -> list[Pad]:
+
+        kicad_pads = self.board.GetPads()
+        pads = [Pad() for _ in kicad_pads]
+
+        for i, pad in enumerate(kicad_pads):
+
+            pads[i].shape = self.__convert_shape(pad.GetEffectiveShape())
+            pads[i].net = pad.GetNetname()
+            pads[i].layer_id = pad.GetPrincipalLayer()
+
+        return pads
 
 
     def get_tracks(self) -> list[Track]:
