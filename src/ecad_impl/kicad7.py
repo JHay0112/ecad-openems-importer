@@ -16,6 +16,7 @@ from src.ecad_intf.track import Track, Segment
 from src.ecad_intf.via import Via
 
 from src.shapes.shape import Shape
+from src.shapes.compound import CompoundShape
 from src.shapes.rectangle import Rectangle
 from src.shapes.circle import Circle
 
@@ -36,7 +37,7 @@ class KiCAD7Board(Board):
     
 
     @classmethod
-    def __convert_shape(cls, kicad_shape) -> Shape:
+    def __convert_shape(cls, kicad_shape) -> Shape | CompoundShape:
         """Private method for convering KiCAD shapes into valid shapes."""
 
 
@@ -47,8 +48,16 @@ class KiCAD7Board(Board):
         if isinstance(kicad_shape, pcbnew.SHAPE_COMPOUND):
 
             # Basic approach. Get first shape and roll with it.
-            shape = cls.__convert_shape(kicad_shape.GetSubshapes()[0])
-            return shape
+            shapes: list[Shape] = []
+
+            for sub_shape in kicad_shape.GetSubshapes():
+
+                shape = cls.__convert_shape(sub_shape)
+                shapes.append(shape)
+
+            compound_shape = CompoundShape(shapes)
+
+            return compound_shape
 
         if isinstance(kicad_shape, pcbnew.SHAPE_RECT):
 

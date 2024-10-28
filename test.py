@@ -1,6 +1,8 @@
 from src.ecad_impl.kicad7 import KiCAD7Board
 from src.ecad_intf.board import Board
 from src.shapes.circle import Circle
+from src.shapes.shape import Shape
+from src.shapes.compound import CompoundShape
 
 from CSXCAD import ContinuousStructure
 from openEMS.physical_constants import *
@@ -84,10 +86,22 @@ for pad in pads:
 
     copper = net_map[pad.net]
 
-    points = np.array(pad.shape.polygon()).T
-    layer = layer_map[pad.layer_id]
 
-    copper.AddPolygon(points, "z", layer.depth)
+    if isinstance(pad.shape, CompoundShape):
+
+        for shape in pad.shape:
+
+            points = np.array(shape.polygon()).T
+            layer = layer_map[pad.layer_id]
+
+            copper.AddPolygon(points, "z", layer.depth)
+
+    else:
+
+        points = np.array(pad.shape.polygon()).T
+        layer = layer_map[pad.layer_id]
+
+        copper.AddPolygon(points, "z", layer.depth)
 
 
 

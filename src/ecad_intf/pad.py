@@ -6,6 +6,7 @@ Author: J. L. Hay
 
 
 from src.shapes.shape import Shape
+from src.shapes.compound import CompoundShape
 
 
 
@@ -16,6 +17,6 @@ class Pad:
     
     def __init__(self):
         
-        self.shape: Shape = None
+        self.shape: Shape | CompoundShape = None
         self.net: str = None
         self.layer_id: str = None
