@@ -15,6 +15,16 @@ SUBSTR_KAPPA = 1e-3 * 2 * pi * 2.45e9 * EPS0 * SUBSTR_EPS_R
 
 
 
+def polygon_circle(centre: tuple[float, float], radius: float, edges: int) -> list[tuple[float, float]]:
+    """Produces a polygon approximation of a circle."""
+    centre = np.array(centre)
+    rads = np.linspace(0, 2 * pi, edges)
+    xs = radius * np.cos(rads) + centre[0]
+    ys = radius * np.sin(rads) + centre[1]
+
+    return [[x, y] for x, y in zip(xs, ys)]
+
+
 board: Board = KiCAD7Board.load_from_file(INPUT_BOARD)
 
 
@@ -50,6 +60,11 @@ for track in tracks:
 
         start = np.array([segment.start[0], segment.start[1]])
         end = np.array([segment.end[0], segment.end[1]])
+
+        start_circle = polygon_circle(start, segment.width/2, 100)
+        copper.AddPolygon(np.array(start_circle).T, "z", layer.depth)
+        end_circle = polygon_circle(end, segment.width/2, 100)
+        copper.AddPolygon(np.array(end_circle).T, "z", layer.depth)
 
         points = np.array([start + perp, start - perp, end - perp, end + perp]).T
 
