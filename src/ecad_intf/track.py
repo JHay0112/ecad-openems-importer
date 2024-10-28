@@ -5,23 +5,8 @@ Author: J. L. Hay
 """
 
 
+from src.ecad_intf.feature import Feature
 
-class Segment:
-    """
-    Describes a copper track segment of a PCB.
-    """
-    
-    def __init__(self):
-        
-        self.start: tuple[float, float] = None
-        self.end: tuple[float, float] = None
-        self.width: float = None
-        self.net: str = None
-        self.layer_id: str = None
-
-    def __repr__(self):
-
-        return f"Segment(start = {self.start}, end = {self.end}, width = {self.width}, net = {self.net}, layer_id = {self.layer_id})"
     
 
 class Track:
@@ -31,7 +16,7 @@ class Track:
 
     def __init__(self):
 
-        self.segments: list[Segment] = []
+        self.segments: list[Feature] = []
         self.net: str = None 
         self.layer_id: str = None 
 
@@ -45,7 +30,7 @@ class Track:
         return f"Track(segments = {self.segments}, net = {self.net}, layer_id = {self.layer_id})"
     
 
-    def add_segment(self, segment: Segment):
+    def add_segment(self, segment: Feature):
         """
         Adds a segment to the track.
 

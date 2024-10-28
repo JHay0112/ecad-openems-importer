@@ -10,10 +10,9 @@ import ctypes
 
 from src.ecad_intf.board import Board
 from src.ecad_intf.layer import Layer
-from src.ecad_intf.zone import Zone
+from src.ecad_intf.feature import Feature
 from src.ecad_intf.footprint import Footprint
-from src.ecad_intf.pad import Pad
-from src.ecad_intf.track import Track, Segment
+from src.ecad_intf.track import Track
 from src.ecad_intf.via import Via
 
 from src.shapes.shape import Shape
@@ -181,7 +180,7 @@ class KiCAD7Board(Board):
         return copper_layers
     
 
-    def get_zones(self) -> list[Zone]:
+    def get_zones(self) -> list[Feature]:
 
         ...
 
@@ -201,10 +200,10 @@ class KiCAD7Board(Board):
         return fps
 
 
-    def get_pads(self) -> list[Pad]:
+    def get_pads(self) -> list[Feature]:
 
         kicad_pads = self.board.GetPads()
-        pads = [Pad() for _ in kicad_pads]
+        pads = [Feature() for _ in kicad_pads]
 
         for i, pad in enumerate(kicad_pads):
 
@@ -234,7 +233,7 @@ class KiCAD7Board(Board):
             if track_id not in track_map.keys():
                 track_map[track_id] = Track()
 
-            track_segment = Segment()
+            track_segment = Feature()
             track_segment.start = tuple(self.__to_mm(val) for val in track_start)
             track_segment.end = tuple(self.__to_mm(val) for val in track_end)
             track_segment.net = track_net
