@@ -20,3 +20,16 @@ class Polygon(Shape):
     def polygon(self) -> list[tuple[float, float]]:
         # Now that's easy isn't it
         return self.points
+    
+
+    def centre(self) -> tuple[float, float]:
+
+        sum_x = 0
+        sum_y = 0
+
+        for point in self.points:
+            sum_x += point[0]
+            sum_y += point[1]
+
+        n = len(self.points)
+        return (sum_x/n, sum_y/n)

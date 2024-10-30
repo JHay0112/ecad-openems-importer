@@ -23,3 +23,15 @@ class Shape(ABC):
         list[tuple[float, float]]
         """
         ...
+
+    @abstractmethod
+    def centre(self) -> tuple[float, float]:
+        """
+        Returns the centre point of the shape.
+
+        Returns
+        -------
+
+        tuple[float, float]
+        """
+        ...

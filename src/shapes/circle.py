@@ -20,15 +20,20 @@ class Circle(Shape):
 
     def __init__(self, centre: tuple[float, float], radius: float):
 
-        self.centre: tuple[float, float] = centre
+        self.centre_pos: tuple[float, float] = centre
         self.radius: float = radius
 
     
     def polygon(self) -> list[tuple[float, float]]:
         
-        centre = np.array(self.centre)
+        centre = np.array(self.centre_pos)
         rads = np.linspace(0, 2 * np.pi, self.NUMBER_EDGES)
         xs = self.radius * np.cos(rads) + centre[0]
         ys = self.radius * np.sin(rads) + centre[1]
 
         return [[x, y] for x, y in zip(xs, ys)]
+    
+
+    def centre(self) -> tuple[float, float]:
+
+        return self.centre_pos

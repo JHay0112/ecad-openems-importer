@@ -28,3 +28,8 @@ class Rectangle(Shape):
         ]
 
         return points
+    
+
+    def centre(self) -> tuple[float, float]:
+        
+        return ((self.start[0] + self.end[0])/2, (self.start[1] + self.end[1])/2)
