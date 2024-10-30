@@ -46,9 +46,9 @@ class KiCAD7Board(Board):
         if isinstance(kicad_shape, pcbnew.SHAPE):
             kicad_shape = kicad_shape.Cast()
         
+
         if isinstance(kicad_shape, pcbnew.SHAPE_COMPOUND):
 
-            # Basic approach. Get first shape and roll with it.
             shapes: list[Shape] = []
 
             for sub_shape in kicad_shape.GetSubshapes():
@@ -57,9 +57,14 @@ class KiCAD7Board(Board):
                 if shape is not None:
                     shapes.append(shape)
 
+            if len(shapes) == 1:
+                # Trivial shape!
+                return shapes[0]
+
             compound_shape = CompoundShape(shapes)
 
             return compound_shape
+        
 
         if isinstance(kicad_shape, pcbnew.SHAPE_RECT):
 
@@ -76,6 +81,7 @@ class KiCAD7Board(Board):
             shape = Rectangle(start, end)
 
             return shape
+        
 
         if isinstance(kicad_shape, pcbnew.SHAPE_CIRCLE):
 
@@ -207,7 +213,7 @@ class KiCAD7Board(Board):
 
         for i, pad in enumerate(kicad_pads):
 
-            pads[i].name = pad.GetName()
+            pads[i].name = pad.GetPadName()
             pads[i].shape = self.__convert_shape(pad.GetEffectiveShape())
             pads[i].net = pad.GetNetname()
             pads[i].layer_id = pad.GetPrincipalLayer()

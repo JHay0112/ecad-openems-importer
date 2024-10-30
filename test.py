@@ -5,6 +5,7 @@ from src.shapes.shape import Shape
 from src.shapes.compound import CompoundShape
 
 from CSXCAD import ContinuousStructure
+from openEMS import openEMS
 from openEMS.physical_constants import *
 from math import pi
 
@@ -35,10 +36,14 @@ board: Board = KiCAD7Board.load_from_file(INPUT_BOARD)
 bbox = board.get_bounding_box()
 layers = board.get_layers()
 footprints = board.get_footprints()
+pads = board.get_pads()
 tracks = board.get_tracks()
 
 
 csx = ContinuousStructure()
+
+ems = openEMS(NrTS = 30000, EndCriteria = 1e-4)
+ems.SetCSX(csx)
 
 
 layer_map = {layer.id: layer for layer in layers}
@@ -82,6 +87,11 @@ for track in tracks:
         copper.AddPolygon(points, "z", layer.depth)
 
 
+
+source_start = None
+source_end = None
+
+
 for fp in footprints:
 
     if fp.shape is None:
@@ -105,6 +115,19 @@ for fp in footprints:
 
         copper.AddPolygon(points, "z", layer.depth)
 
+
+    if fp.reference == "TP1":
+        pos = fp.shape.centre()
+        layer = layer_map[fp.layer_id]
+        source_start = (pos[0], pos[1], layer.depth)
+
+    if fp.reference == "TP2":
+        pos = fp.shape.centre()
+        layer = layer_map[fp.layer_id]
+        source_end = (pos[0], pos[1], layer.depth)
+
+
+port = ems.AddLumpedPort(1, 50, source_start, source_end, "y", 1.0)
 
 
 csx.Write2XML("test.xml")
