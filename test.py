@@ -9,13 +9,25 @@ from openEMS import openEMS
 from openEMS.physical_constants import *
 from math import pi
 
+import os
 import numpy as np
 
 
 INPUT_BOARD = "ti_ant.kicad_pcb"
 
+RESULTS_DIR = os.path.abspath("out")
+
 SUBSTR_EPS_R = 3.38
 SUBSTR_KAPPA = 1e-3 * 2 * pi * 2.45e9 * EPS0 * SUBSTR_EPS_R
+
+
+NUM_THREADS = 8
+MESH_SCALE_FACTOR = 500
+
+FEED_R = 50
+
+F0 = 2.4e9
+FC = 1e9
 
 
 
@@ -41,9 +53,6 @@ tracks = board.get_tracks()
 
 
 csx = ContinuousStructure()
-
-ems = openEMS(NrTS = 30000, EndCriteria = 1e-4)
-ems.SetCSX(csx)
 
 
 layer_map = {layer.id: layer for layer in layers}
@@ -127,7 +136,34 @@ for fp in footprints:
         source_end = (pos[0], pos[1], layer.depth)
 
 
-port = ems.AddLumpedPort(1, 50, source_start, source_end, "y", 1.0)
+
+sim = openEMS(NrTS = 60000, EndCriteria = 1e-4)
+sim.SetGaussExcite(F0, FC)
+sim.SetBoundaryCond(["MUR", "MUR", "MUR", "MUR", "MUR", "MUR"])
+
+sim.SetCSX(csx)
+
+mesh = csx.GetGrid()
+mesh.SetDeltaUnit(1e-3)
+mesh_res = C0 / ((F0 + FC) * 1e-3)
+mesh_res /= MESH_SCALE_FACTOR
 
 
-csx.Write2XML("test.xml")
+for prop in csx.GetAllProperties():
+    sim.AddEdges2Grid(dirs = "xyz", properties = prop, metal_edge_res = mesh_res / 2)
+
+
+e_dump = csx.AddDump("Et")
+start, end = bbox
+e_dump.AddBox(start, end)
+
+
+port = sim.AddLumpedPort(1, FEED_R, source_start, source_end, "y", 1.0, priority = 5, edges2grid = "all")
+mesh.SmoothMeshLines("all", mesh_res)
+nf2ff = sim.CreateNF2FFBox()
+
+
+# csx.Write2XML("test.xml")
+# exit()
+
+sim.Run(RESULTS_DIR, verbose = 3, numThreads = NUM_THREADS)
