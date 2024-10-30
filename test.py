@@ -22,12 +22,16 @@ SUBSTR_KAPPA = 1e-3 * 2 * pi * 2.45e9 * EPS0 * SUBSTR_EPS_R
 
 
 NUM_THREADS = 8
-MESH_SCALE_FACTOR = 500
+MESH_SCALE_FACTOR = 200
 
 FEED_R = 50
 
 F0 = 2.4e9
 FC = 1e9
+
+X_PAD = 25
+Y_PAD = 25
+Z_PAD = 10
 
 
 
@@ -137,6 +141,13 @@ for fp in footprints:
 
 
 
+pad_vec = np.array([X_PAD, Y_PAD, Z_PAD])
+bbox_start = np.array(bbox[0]) - pad_vec
+bbox_end = np.array(bbox[1]) + pad_vec
+x_bound = [bbox_start[0], bbox_end[0]]
+y_bound = [bbox_start[1], bbox_end[1]]
+z_bound = [bbox_start[2], bbox_end[2]]
+
 sim = openEMS(NrTS = 60000, EndCriteria = 1e-4)
 sim.SetGaussExcite(F0, FC)
 sim.SetBoundaryCond(["MUR", "MUR", "MUR", "MUR", "MUR", "MUR"])
@@ -147,6 +158,10 @@ mesh = csx.GetGrid()
 mesh.SetDeltaUnit(1e-3)
 mesh_res = C0 / ((F0 + FC) * 1e-3)
 mesh_res /= MESH_SCALE_FACTOR
+
+mesh.AddLine("x", x_bound)
+mesh.AddLine("z", z_bound)
+mesh.AddLine("y", y_bound)
 
 
 for prop in csx.GetAllProperties():
