@@ -22,16 +22,22 @@ SUBSTR_KAPPA = 1e-3 * 2 * pi * 2.45e9 * EPS0 * SUBSTR_EPS_R
 
 
 NUM_THREADS = 8
-MESH_SCALE_FACTOR = 200
+MESH_SCALE_FACTOR = 250
 
 FEED_R = 50
 
 F0 = 2.4e9
 FC = 1e9
 
-X_PAD = 25
-Y_PAD = 25
-Z_PAD = 10
+X_PAD = 15
+Y_PAD = 15
+Z_PAD = 5
+
+BOARD_PRIORITY = 1
+TRACK_START_PRIORITY = 2
+TRACK_END_PRIORITY = 3
+TRACK_PRIORITY = 5
+FOOTPRINT_PRIORITY = 4
 
 
 
@@ -47,6 +53,7 @@ def polygon_circle(centre: tuple[float, float], radius: float, edges: int) -> li
 
 board: Board = KiCAD7Board.load_from_file(INPUT_BOARD)
 
+priority = 1
 
 
 bbox = board.get_bounding_box()
@@ -62,18 +69,20 @@ csx = ContinuousStructure()
 layer_map = {layer.id: layer for layer in layers}
 
 nets = set(feature.net for feature in tracks)
-net_map = {net: csx.AddMetal(net) for net in nets}
+# net_map = {net: csx.AddMetal(net) for net in nets}
 
 
 substrate = csx.AddMaterial("board", epsilon = SUBSTR_EPS_R, kappa = SUBSTR_KAPPA)
-substrate.AddBox(*bbox)
+substrate.AddBox(*bbox, priority = priority)
+priority += 1
+
+
+copper = csx.AddMetal("net")
 
 
 for track in tracks:
-
-    copper = net_map[track.net]
     
-    for segment in track.segments:
+    for i, segment in enumerate(track.segments):
 
         layer = layer_map[segment.layer_id]
 
@@ -91,13 +100,16 @@ for track in tracks:
         end = np.array([segment.end[0], segment.end[1]])
 
         start_circle = Circle(start, segment.width/2).polygon()
-        copper.AddPolygon(np.array(start_circle).T, "z", layer.depth)
+        copper.AddPolygon(np.array(start_circle).T, "z", layer.depth, priority = priority)
+        priority += 1
         end_circle = Circle(end, segment.width/2).polygon()
-        copper.AddPolygon(np.array(end_circle).T, "z", layer.depth)
+        copper.AddPolygon(np.array(end_circle).T, "z", layer.depth, priority = priority)
+        priority += 1
 
         points = np.array([start + perp, start - perp, end - perp, end + perp]).T
 
-        copper.AddPolygon(points, "z", layer.depth)
+        copper.AddPolygon(points, "z", layer.depth, priority = priority)
+        priority += 1
 
 
 
@@ -110,7 +122,7 @@ for fp in footprints:
     if fp.shape is None:
         continue
 
-    copper = csx.AddMetal(fp.reference)
+    # copper = csx.AddMetal(fp.reference)
 
     if isinstance(fp.shape, CompoundShape):
 
@@ -119,14 +131,16 @@ for fp in footprints:
             points = np.array(shape.polygon()).T
             layer = layer_map[fp.layer_id]
 
-            copper.AddPolygon(points, "z", layer.depth)
+            copper.AddPolygon(points, "z", layer.depth, priority = priority)
+            priority += 1
 
     else:
 
         points = np.array(fp.shape.polygon()).T
         layer = layer_map[fp.layer_id]
 
-        copper.AddPolygon(points, "z", layer.depth)
+        copper.AddPolygon(points, "z", layer.depth, priority = priority)
+        priority += 1
 
 
     if fp.reference == "TP1":
@@ -148,7 +162,7 @@ x_bound = [bbox_start[0], bbox_end[0]]
 y_bound = [bbox_start[1], bbox_end[1]]
 z_bound = [bbox_start[2], bbox_end[2]]
 
-sim = openEMS(NrTS = 60000, EndCriteria = 1e-4)
+sim = openEMS(NrTS = 30000, EndCriteria = 1e-4)
 sim.SetGaussExcite(F0, FC)
 sim.SetBoundaryCond(["MUR", "MUR", "MUR", "MUR", "MUR", "MUR"])
 
@@ -173,7 +187,7 @@ start, end = bbox
 e_dump.AddBox(start, end)
 
 
-port = sim.AddLumpedPort(1, FEED_R, source_start, source_end, "y", 1.0, priority = 5, edges2grid = "all")
+port = sim.AddLumpedPort(1, FEED_R, source_start, source_end, "y", 1.0, edges2grid = "all", priority = priority)
 mesh.SmoothMeshLines("all", mesh_res)
 nf2ff = sim.CreateNF2FFBox()
 
