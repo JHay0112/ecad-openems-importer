@@ -10,9 +10,7 @@ import ctypes
 
 from src.ecad_intf.board import Board
 from src.ecad_intf.layer import Layer
-from src.ecad_intf.feature import Feature
-from src.ecad_intf.footprint import Footprint
-from src.ecad_intf.track import Track
+from src.ecad_intf.pad import Pad
 from src.ecad_intf.via import Via
 
 from src.shapes.shape import Shape
@@ -184,32 +182,12 @@ class KiCAD7Board(Board):
             copper_layers[i].depth = board_thickness * layer_depth
 
         return copper_layers
-    
-
-    def get_zones(self) -> list[Feature]:
-
-        ...
 
 
-    def get_footprints(self) -> list[Footprint]:
-
-        kicad_fps = self.board.GetFootprints()
-        fps = [Footprint() for _ in kicad_fps]
-
-        for i, fp in enumerate(kicad_fps):
-
-            fps[i].shape = self.__convert_shape(fp.GetEffectiveShape())
-            fps[i].reference = fp.GetReference()
-            fps[i].layer_id = fp.GetLayer()
-            fps[i].pads = [pad.GetName() for pad in fp.Pads()]
-
-        return fps
-
-
-    def get_pads(self) -> list[Feature]:
+    def get_pads(self) -> list[Pad]:
 
         kicad_pads = self.board.GetPads()
-        pads = [Feature() for _ in kicad_pads]
+        pads = [Pad() for _ in kicad_pads]
 
         for i, pad in enumerate(kicad_pads):
 
@@ -219,36 +197,6 @@ class KiCAD7Board(Board):
             pads[i].layer_id = pad.GetPrincipalLayer()
 
         return pads
-
-
-    def get_tracks(self) -> list[Track]:
-
-        kicad_tracks = self.board.GetTracks()
-        track_map: dict[tuple[str, str], Track] = {}
-
-        for track in kicad_tracks:
-
-            track_net = track.GetNetname()
-            track_layer = track.GetLayer()
-            track_start = track.GetStart()
-            track_end = track.GetEnd()
-            track_width = track.GetWidth()
-
-            track_id = (track_net, track_layer)
-
-            if track_id not in track_map.keys():
-                track_map[track_id] = Track()
-
-            track_segment = Feature()
-            track_segment.start = tuple(self.__to_mm(val) for val in track_start)
-            track_segment.end = tuple(self.__to_mm(val) for val in track_end)
-            track_segment.net = track_net
-            track_segment.layer_id = track_layer
-            track_segment.width = self.__to_mm(track_width)
-
-            track_map[track_id].add_segment(track_segment)
-
-        return list(track_map.values())
 
 
     def get_vias(self) -> list[Via]:
