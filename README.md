@@ -11,3 +11,11 @@ in OpenEMS. This is enough to show that the idea is solid, but not enough to do 
 with without a lot of manual work. Once the application is mature it should be able to function as a
 simple intermediary for bringing a PCB design into OpenEMS and automatically generating a suitable
 mesh.
+
+## Roadmap
+
+- [ ] Produce polygons describing continuous copper areas on all layers.
+      (Ideally single polygon per area.)
+- [ ] Produce vias and plated through holes at prescribed positions that provide electrical
+      connection and air gap in the middle.
+- [ ] Improve meshing beyond automatic utility provided by openEMS and guess/check.
