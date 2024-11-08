@@ -15,4 +15,4 @@ class Pad:
         self.id: str = None
         self.name: str = None
         self.layer_id: str = None
-        self.position: tuple[tuple[float, float], tuple[float, float]] = None
+        self.position: tuple[float, float] = None

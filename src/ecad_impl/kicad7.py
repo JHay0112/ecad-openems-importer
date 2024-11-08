@@ -124,10 +124,12 @@ class KiCAD7Board(Board):
         for i, pad in enumerate(kicad_pads):
 
             pads[i].name = pad.GetPadName()
-            pads[i].shape = self.__convert_shape(pad.GetEffectiveShape())
             pads[i].net = pad.GetNetname()
             pads[i].layer_id = pad.GetPrincipalLayer()
-
+            
+            pad_pos = pad.GetPosition()
+            pads[i].position = (pad_pos[0], pad_pos[1])
+ 
         return pads
 
 

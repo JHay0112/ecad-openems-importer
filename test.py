@@ -92,8 +92,8 @@ for layer in layers:
         priority += 1
 
 
-csx.Write2XML("test.xml")
-exit()
+source_start = (141.275, 99.95, 0)
+source_end = (141.275, 102.05, 0)
 
 
 pad_vec = np.array([X_PAD, Y_PAD, Z_PAD])
@@ -133,7 +133,5 @@ mesh.SmoothMeshLines("all", mesh_res)
 nf2ff = sim.CreateNF2FFBox()
 
 
-# csx.Write2XML("test.xml")
-# exit()
 
 sim.Run(RESULTS_DIR, verbose = 3, numThreads = NUM_THREADS)
