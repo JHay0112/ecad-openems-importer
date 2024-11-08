@@ -13,12 +13,6 @@ from src.ecad_intf.layer import Layer
 from src.ecad_intf.pad import Pad
 from src.ecad_intf.via import Via
 
-from src.shapes.shape import Shape
-from src.shapes.compound import CompoundShape
-from src.shapes.rectangle import Rectangle
-from src.shapes.circle import Circle
-from src.shapes.polygon import Polygon
-
 
 
 class KiCAD7Board(Board):
@@ -33,87 +27,6 @@ class KiCAD7Board(Board):
     def __to_mm(_, x: float) -> float:
         """Private method for converting KiCAD values to mm."""
         return x / 1_000_000
-    
-
-    @classmethod
-    def __convert_shape(cls, kicad_shape) -> Shape | CompoundShape:
-        """Private method for convering KiCAD shapes into valid shapes."""
-
-
-        # Deal with shapes that haven't been cast yet
-        if isinstance(kicad_shape, pcbnew.SHAPE):
-            kicad_shape = kicad_shape.Cast()
-        
-
-        if isinstance(kicad_shape, pcbnew.SHAPE_COMPOUND):
-
-            shapes: list[Shape] = []
-
-            for sub_shape in kicad_shape.GetSubshapes():
-
-                shape = cls.__convert_shape(sub_shape)
-                if shape is not None:
-                    shapes.append(shape)
-
-            if len(shapes) == 1:
-                # Trivial shape!
-                return shapes[0]
-
-            compound_shape = CompoundShape(shapes)
-
-            return compound_shape
-        
-
-        if isinstance(kicad_shape, pcbnew.SHAPE_RECT):
-
-            pos = kicad_shape.GetPosition()
-            width = kicad_shape.GetWidth()
-            height = kicad_shape.GetHeight()
-
-            pos = [cls.__to_mm(val) for val in pos]
-            width = cls.__to_mm(width)
-            height = cls.__to_mm(height)
-
-            start = [pos[0], pos[1]]
-            end = [pos[0] + width, pos[1] + height]
-            shape = Rectangle(start, end)
-
-            return shape
-        
-
-        if isinstance(kicad_shape, pcbnew.SHAPE_CIRCLE):
-
-            centre = kicad_shape.GetCenter()
-            radius = kicad_shape.GetRadius()
-
-            centre = [cls.__to_mm(val) for val in centre]
-            radius = cls.__to_mm(radius)
-
-            shape = Circle(centre, radius)
-            return shape
-        
-        
-        if isinstance(kicad_shape, pcbnew.SHAPE_SIMPLE):
-            # Polygon!
-            points = []
-            
-            for i in range(kicad_shape.GetPointCount()):
-                point = kicad_shape.GetPoint(i)
-                point = [cls.__to_mm(val) for val in point]
-                points.append(point)
-
-            return Polygon(points)
-        
-
-        if isinstance(kicad_shape, pcbnew.SHAPE_ARC):
-
-            return None
-        
-        if isinstance(kicad_shape, pcbnew.SHAPE_SEGMENT):
-
-            return None
-        
-        raise ValueError(f"Shape of type \"{type(kicad_shape)}\" passed to __convert_shape is not handled.")
     
 
     @classmethod
