@@ -58,9 +58,7 @@ priority = 1
 
 bbox = board.get_bounding_box()
 layers = board.get_layers()
-footprints = board.get_footprints()
 pads = board.get_pads()
-tracks = board.get_tracks()
 
 
 csx = ContinuousStructure()
@@ -68,91 +66,27 @@ csx = ContinuousStructure()
 
 layer_map = {layer.id: layer for layer in layers}
 
-nets = set(feature.net for feature in tracks)
-# net_map = {net: csx.AddMetal(net) for net in nets}
-
 
 substrate = csx.AddMaterial("board", epsilon = SUBSTR_EPS_R, kappa = SUBSTR_KAPPA)
 substrate.AddBox(*bbox, priority = priority)
 priority += 1
 
 
-copper = csx.AddMetal("net")
+for layer in layers:
 
+    material = csx.AddMetal(layer.name + "_Cu")
+    polygons = layer.polygons
+    depth = layer.depth
 
-for track in tracks:
-    
-    for i, segment in enumerate(track.segments):
+    for polygon in polygons:
 
-        layer = layer_map[segment.layer_id]
-
-        start = np.array(segment.start)
-        end = np.array(segment.end)
-
-        if np.array_equal(start, end):
-            continue
-
-        diff = end - start
-        dir = diff / np.linalg.norm(diff)
-        perp = np.array([-dir[1], dir[0]]) * segment.width/2
-
-        start = np.array([segment.start[0], segment.start[1]])
-        end = np.array([segment.end[0], segment.end[1]])
-
-        start_circle = Circle(start, segment.width/2).polygon()
-        copper.AddPolygon(np.array(start_circle).T, "z", layer.depth, priority = priority)
-        priority += 1
-        end_circle = Circle(end, segment.width/2).polygon()
-        copper.AddPolygon(np.array(end_circle).T, "z", layer.depth, priority = priority)
-        priority += 1
-
-        points = np.array([start + perp, start - perp, end - perp, end + perp]).T
-
-        copper.AddPolygon(points, "z", layer.depth, priority = priority)
+        points = np.array(polygon).T
+        material.AddPolygon(points, "z", depth, priority = priority)
         priority += 1
 
 
-
-source_start = None
-source_end = None
-
-
-for fp in footprints:
-
-    if fp.shape is None:
-        continue
-
-    # copper = csx.AddMetal(fp.reference)
-
-    if isinstance(fp.shape, CompoundShape):
-
-        for shape in fp.shape:
-
-            points = np.array(shape.polygon()).T
-            layer = layer_map[fp.layer_id]
-
-            copper.AddPolygon(points, "z", layer.depth, priority = priority)
-            priority += 1
-
-    else:
-
-        points = np.array(fp.shape.polygon()).T
-        layer = layer_map[fp.layer_id]
-
-        copper.AddPolygon(points, "z", layer.depth, priority = priority)
-        priority += 1
-
-
-    if fp.reference == "TP1":
-        pos = fp.shape.centre()
-        layer = layer_map[fp.layer_id]
-        source_start = (pos[0], pos[1], layer.depth)
-
-    if fp.reference == "TP2":
-        pos = fp.shape.centre()
-        layer = layer_map[fp.layer_id]
-        source_end = (pos[0], pos[1], layer.depth)
-
+csx.Write2XML("test.xml")
+exit()
 
 
 pad_vec = np.array([X_PAD, Y_PAD, Z_PAD])

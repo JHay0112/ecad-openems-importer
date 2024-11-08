@@ -181,6 +181,25 @@ class KiCAD7Board(Board):
             layer_depth = self.board.LayerDepth(copper_layer_ids[0], id)
             copper_layers[i].depth = board_thickness * layer_depth
 
+            polyset = pcbnew.SHAPE_POLY_SET()
+            self.board.ConvertBrdLayerToPolygonalContours(id, polyset)
+            copper_layers[i].polygons = []
+
+            for j in range(polyset.OutlineCount()):
+                
+                outline = polyset.Outline(j)
+                points = []
+
+                for k in range(outline.PointCount()):
+
+                    point = outline.CPoint(k)
+                    x = self.__to_mm(point.x)
+                    y = self.__to_mm(point.y)
+
+                    points.append((x, y))
+                
+                copper_layers[i].polygons.append(points)
+
         return copper_layers
 
 
