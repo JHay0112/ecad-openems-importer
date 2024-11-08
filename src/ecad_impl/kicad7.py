@@ -10,16 +10,8 @@ import ctypes
 
 from src.ecad_intf.board import Board
 from src.ecad_intf.layer import Layer
-from src.ecad_intf.feature import Feature
-from src.ecad_intf.footprint import Footprint
-from src.ecad_intf.track import Track
+from src.ecad_intf.pad import Pad
 from src.ecad_intf.via import Via
-
-from src.shapes.shape import Shape
-from src.shapes.compound import CompoundShape
-from src.shapes.rectangle import Rectangle
-from src.shapes.circle import Circle
-from src.shapes.polygon import Polygon
 
 
 
@@ -35,87 +27,6 @@ class KiCAD7Board(Board):
     def __to_mm(_, x: float) -> float:
         """Private method for converting KiCAD values to mm."""
         return x / 1_000_000
-    
-
-    @classmethod
-    def __convert_shape(cls, kicad_shape) -> Shape | CompoundShape:
-        """Private method for convering KiCAD shapes into valid shapes."""
-
-
-        # Deal with shapes that haven't been cast yet
-        if isinstance(kicad_shape, pcbnew.SHAPE):
-            kicad_shape = kicad_shape.Cast()
-        
-
-        if isinstance(kicad_shape, pcbnew.SHAPE_COMPOUND):
-
-            shapes: list[Shape] = []
-
-            for sub_shape in kicad_shape.GetSubshapes():
-
-                shape = cls.__convert_shape(sub_shape)
-                if shape is not None:
-                    shapes.append(shape)
-
-            if len(shapes) == 1:
-                # Trivial shape!
-                return shapes[0]
-
-            compound_shape = CompoundShape(shapes)
-
-            return compound_shape
-        
-
-        if isinstance(kicad_shape, pcbnew.SHAPE_RECT):
-
-            pos = kicad_shape.GetPosition()
-            width = kicad_shape.GetWidth()
-            height = kicad_shape.GetHeight()
-
-            pos = [cls.__to_mm(val) for val in pos]
-            width = cls.__to_mm(width)
-            height = cls.__to_mm(height)
-
-            start = [pos[0], pos[1]]
-            end = [pos[0] + width, pos[1] + height]
-            shape = Rectangle(start, end)
-
-            return shape
-        
-
-        if isinstance(kicad_shape, pcbnew.SHAPE_CIRCLE):
-
-            centre = kicad_shape.GetCenter()
-            radius = kicad_shape.GetRadius()
-
-            centre = [cls.__to_mm(val) for val in centre]
-            radius = cls.__to_mm(radius)
-
-            shape = Circle(centre, radius)
-            return shape
-        
-        
-        if isinstance(kicad_shape, pcbnew.SHAPE_SIMPLE):
-            # Polygon!
-            points = []
-            
-            for i in range(kicad_shape.GetPointCount()):
-                point = kicad_shape.GetPoint(i)
-                point = [cls.__to_mm(val) for val in point]
-                points.append(point)
-
-            return Polygon(points)
-        
-
-        if isinstance(kicad_shape, pcbnew.SHAPE_ARC):
-
-            return None
-        
-        if isinstance(kicad_shape, pcbnew.SHAPE_SEGMENT):
-
-            return None
-        
-        raise ValueError(f"Shape of type \"{type(kicad_shape)}\" passed to __convert_shape is not handled.")
     
 
     @classmethod
@@ -183,72 +94,43 @@ class KiCAD7Board(Board):
             layer_depth = self.board.LayerDepth(copper_layer_ids[0], id)
             copper_layers[i].depth = board_thickness * layer_depth
 
+            polyset = pcbnew.SHAPE_POLY_SET()
+            self.board.ConvertBrdLayerToPolygonalContours(id, polyset)
+            copper_layers[i].polygons = []
+
+            for j in range(polyset.OutlineCount()):
+                
+                outline = polyset.Outline(j)
+                points = []
+
+                for k in range(outline.PointCount()):
+
+                    point = outline.CPoint(k)
+                    x = self.__to_mm(point.x)
+                    y = self.__to_mm(point.y)
+
+                    points.append((x, y))
+                
+                copper_layers[i].polygons.append(points)
+
         return copper_layers
-    
-
-    def get_zones(self) -> list[Feature]:
-
-        ...
 
 
-    def get_footprints(self) -> list[Footprint]:
-
-        kicad_fps = self.board.GetFootprints()
-        fps = [Footprint() for _ in kicad_fps]
-
-        for i, fp in enumerate(kicad_fps):
-
-            fps[i].shape = self.__convert_shape(fp.GetEffectiveShape())
-            fps[i].reference = fp.GetReference()
-            fps[i].layer_id = fp.GetLayer()
-            fps[i].pads = [pad.GetName() for pad in fp.Pads()]
-
-        return fps
-
-
-    def get_pads(self) -> list[Feature]:
+    def get_pads(self) -> list[Pad]:
 
         kicad_pads = self.board.GetPads()
-        pads = [Feature() for _ in kicad_pads]
+        pads = [Pad() for _ in kicad_pads]
 
         for i, pad in enumerate(kicad_pads):
 
             pads[i].name = pad.GetPadName()
-            pads[i].shape = self.__convert_shape(pad.GetEffectiveShape())
             pads[i].net = pad.GetNetname()
             pads[i].layer_id = pad.GetPrincipalLayer()
-
+            
+            pad_pos = pad.GetPosition()
+            pads[i].position = (pad_pos[0], pad_pos[1])
+ 
         return pads
-
-
-    def get_tracks(self) -> list[Track]:
-
-        kicad_tracks = self.board.GetTracks()
-        track_map: dict[tuple[str, str], Track] = {}
-
-        for track in kicad_tracks:
-
-            track_net = track.GetNetname()
-            track_layer = track.GetLayer()
-            track_start = track.GetStart()
-            track_end = track.GetEnd()
-            track_width = track.GetWidth()
-
-            track_id = (track_net, track_layer)
-
-            if track_id not in track_map.keys():
-                track_map[track_id] = Track()
-
-            track_segment = Feature()
-            track_segment.start = tuple(self.__to_mm(val) for val in track_start)
-            track_segment.end = tuple(self.__to_mm(val) for val in track_end)
-            track_segment.net = track_net
-            track_segment.layer_id = track_layer
-            track_segment.width = self.__to_mm(track_width)
-
-            track_map[track_id].add_segment(track_segment)
-
-        return list(track_map.values())
 
 
     def get_vias(self) -> list[Via]:

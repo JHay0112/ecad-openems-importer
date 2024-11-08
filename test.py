@@ -1,13 +1,13 @@
 from src.ecad_impl.kicad7 import KiCAD7Board
 from src.ecad_intf.board import Board
-from src.shapes.circle import Circle
-from src.shapes.shape import Shape
-from src.shapes.compound import CompoundShape
 
 from CSXCAD import ContinuousStructure
 from openEMS import openEMS
 from openEMS.physical_constants import *
 from math import pi
+
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
 import os
 import numpy as np
@@ -58,9 +58,7 @@ priority = 1
 
 bbox = board.get_bounding_box()
 layers = board.get_layers()
-footprints = board.get_footprints()
 pads = board.get_pads()
-tracks = board.get_tracks()
 
 
 csx = ContinuousStructure()
@@ -68,91 +66,34 @@ csx = ContinuousStructure()
 
 layer_map = {layer.id: layer for layer in layers}
 
-nets = set(feature.net for feature in tracks)
-# net_map = {net: csx.AddMetal(net) for net in nets}
-
 
 substrate = csx.AddMaterial("board", epsilon = SUBSTR_EPS_R, kappa = SUBSTR_KAPPA)
 substrate.AddBox(*bbox, priority = priority)
 priority += 1
 
 
-copper = csx.AddMetal("net")
+for layer in layers:
 
+    material = csx.AddMetal(layer.name + "_Cu")
+    polygons = layer.polygons
+    depth = layer.depth
 
-for track in tracks:
-    
-    for i, segment in enumerate(track.segments):
+    polygons = [Polygon(polygon) for polygon in polygons]
+    polygon = unary_union(polygons)
 
-        layer = layer_map[segment.layer_id]
-
-        start = np.array(segment.start)
-        end = np.array(segment.end)
-
-        if np.array_equal(start, end):
-            continue
-
-        diff = end - start
-        dir = diff / np.linalg.norm(diff)
-        perp = np.array([-dir[1], dir[0]]) * segment.width/2
-
-        start = np.array([segment.start[0], segment.start[1]])
-        end = np.array([segment.end[0], segment.end[1]])
-
-        start_circle = Circle(start, segment.width/2).polygon()
-        copper.AddPolygon(np.array(start_circle).T, "z", layer.depth, priority = priority)
-        priority += 1
-        end_circle = Circle(end, segment.width/2).polygon()
-        copper.AddPolygon(np.array(end_circle).T, "z", layer.depth, priority = priority)
-        priority += 1
-
-        points = np.array([start + perp, start - perp, end - perp, end + perp]).T
-
-        copper.AddPolygon(points, "z", layer.depth, priority = priority)
-        priority += 1
-
-
-
-source_start = None
-source_end = None
-
-
-for fp in footprints:
-
-    if fp.shape is None:
-        continue
-
-    # copper = csx.AddMetal(fp.reference)
-
-    if isinstance(fp.shape, CompoundShape):
-
-        for shape in fp.shape:
-
-            points = np.array(shape.polygon()).T
-            layer = layer_map[fp.layer_id]
-
-            copper.AddPolygon(points, "z", layer.depth, priority = priority)
-            priority += 1
-
+    if polygon.geom_type == "Polygon":
+        polygons = [list(polygon.exterior.coords)]
     else:
+        polygons = [list(poly.exterior.coords) for poly in polygon]
 
-        points = np.array(fp.shape.polygon()).T
-        layer = layer_map[fp.layer_id]
-
-        copper.AddPolygon(points, "z", layer.depth, priority = priority)
+    for polygon in polygons:
+        points = np.array(polygon).T
+        material.AddPolygon(points, "z", depth, priority = priority)
         priority += 1
 
 
-    if fp.reference == "TP1":
-        pos = fp.shape.centre()
-        layer = layer_map[fp.layer_id]
-        source_start = (pos[0], pos[1], layer.depth)
-
-    if fp.reference == "TP2":
-        pos = fp.shape.centre()
-        layer = layer_map[fp.layer_id]
-        source_end = (pos[0], pos[1], layer.depth)
-
+source_start = (141.275, 99.95, 0)
+source_end = (141.275, 102.05, 0)
 
 
 pad_vec = np.array([X_PAD, Y_PAD, Z_PAD])
@@ -192,7 +133,5 @@ mesh.SmoothMeshLines("all", mesh_res)
 nf2ff = sim.CreateNF2FFBox()
 
 
-# csx.Write2XML("test.xml")
-# exit()
 
 sim.Run(RESULTS_DIR, verbose = 3, numThreads = NUM_THREADS)
