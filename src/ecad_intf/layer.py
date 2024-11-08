@@ -15,6 +15,7 @@ class Layer:
         self.id: str = None
         self.name: str = None
         self.depth: float = None
+        self.polygon: list[tuple[float, float]] = None
 
 
     def __repr__(self):

@@ -12,9 +12,7 @@ from abc import ABC, abstractmethod
 import os
 
 from src.ecad_intf.layer import Layer
-from src.ecad_intf.feature import Feature
-from src.ecad_intf.footprint import Footprint
-from src.ecad_intf.track import Track
+from src.ecad_intf.pad import Pad
 from src.ecad_intf.via import Via
 
 
@@ -99,33 +97,7 @@ class Board(ABC):
 
 
     @abstractmethod
-    def get_zones(self) -> list[Feature]:
-        """
-        Returns a list of zones.
-
-        Returns
-        -------
-
-        list[Zone]
-        """
-        ...
-
-
-    @abstractmethod
-    def get_footprints(self) -> list[Footprint]:
-        """
-        Returns a list of footprints.
-
-        Returns
-        -------
-
-        list[Footprint]
-        """
-        ...
-
-
-    @abstractmethod
-    def get_pads(self) -> list[Feature]:
+    def get_pads(self) -> list[Pad]:
         """
         Returns a list of pads.
 
@@ -133,19 +105,6 @@ class Board(ABC):
         -------
 
         list[Pad]
-        """
-        ...
-
-    
-    @abstractmethod
-    def get_tracks(self) -> list[Track]:
-        """
-        Returns a list of copper tracks on the board.
-
-        Returns
-        -------
-
-        list[Track]
         """
         ...
 
