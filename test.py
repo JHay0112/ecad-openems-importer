@@ -1,13 +1,13 @@
 from src.ecad_impl.kicad7 import KiCAD7Board
 from src.ecad_intf.board import Board
-from src.shapes.circle import Circle
-from src.shapes.shape import Shape
-from src.shapes.compound import CompoundShape
 
 from CSXCAD import ContinuousStructure
 from openEMS import openEMS
 from openEMS.physical_constants import *
 from math import pi
+
+from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
 import os
 import numpy as np
@@ -78,8 +78,15 @@ for layer in layers:
     polygons = layer.polygons
     depth = layer.depth
 
-    for polygon in polygons:
+    polygons = [Polygon(polygon) for polygon in polygons]
+    polygon = unary_union(polygons)
 
+    if polygon.geom_type == "Polygon":
+        polygons = [list(polygon.exterior.coords)]
+    else:
+        polygons = [list(poly.exterior.coords) for poly in polygon]
+
+    for polygon in polygons:
         points = np.array(polygon).T
         material.AddPolygon(points, "z", depth, priority = priority)
         priority += 1
