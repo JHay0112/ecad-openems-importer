@@ -22,16 +22,16 @@ SUBSTR_KAPPA = 1e-3 * 2 * pi * 2.45e9 * EPS0 * SUBSTR_EPS_R
 
 
 NUM_THREADS = 8
-MESH_SCALE_FACTOR = 250
+MESH_SCALE_FACTOR = 800
 
 FEED_R = 50
 
 F0 = 2.4e9
 FC = 1e9
 
-X_PAD = 15
-Y_PAD = 15
-Z_PAD = 5
+X_PAD = 3
+Y_PAD = 3
+Z_PAD = 1
 
 BOARD_PRIORITY = 1
 TRACK_START_PRIORITY = 2
@@ -136,8 +136,8 @@ mesh.SmoothMeshLines("all", mesh_res)
 nf2ff = sim.CreateNF2FFBox()
 
 
-csx.Write2XML("test.xml")
-exit()
+# csx.Write2XML("test.xml")
+# exit()
 
 
 sim.Run(RESULTS_DIR, verbose = 3, numThreads = NUM_THREADS)
