@@ -135,5 +135,33 @@ class KiCAD7Board(Board):
 
     def get_vias(self) -> list[Via]:
 
-        kicad_vias = self.board.GetVias()
+        kicad_pads = self.board.GetPads()
+        vias = []
+
+        for pad in kicad_pads:
+
+            drill_x, drill_y = pad.GetDrillSize()
+            pos_x, pos_y = pad.GetPosition()
+
+            if (drill_x == 0) or (drill_y == 0):
+                continue
+
+            drill_x = self.__to_mm(drill_x)
+            drill_y = self.__to_mm(drill_y)
+
+            assert drill_x == drill_y, "Cannot handle assymetric drill holes."
+
+            pos_x = self.__to_mm(pos_x)
+            pos_y = self.__to_mm(pos_y)
+
+            via = Via()
+
+            via.net = pad.GetNetname()
+            via.position = (pos_x, pos_y)
+            via.inner_diameter = drill_x
+            via.outer_diameter = 2 * self.__to_mm(pad.GetBoundingRadius())
+
+            vias.append(via)
+
+        return vias
 

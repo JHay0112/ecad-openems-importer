@@ -13,7 +13,7 @@ import os
 import numpy as np
 
 
-INPUT_BOARD = "ti_ant.kicad_pcb"
+INPUT_BOARD = "examples/kicad7/ti_ant.kicad_pcb"
 
 RESULTS_DIR = os.path.abspath("out")
 
@@ -41,16 +41,6 @@ FOOTPRINT_PRIORITY = 4
 
 
 
-def polygon_circle(centre: tuple[float, float], radius: float, edges: int) -> list[tuple[float, float]]:
-    """Produces a polygon approximation of a circle."""
-    centre = np.array(centre)
-    rads = np.linspace(0, 2 * pi, edges)
-    xs = radius * np.cos(rads) + centre[0]
-    ys = radius * np.sin(rads) + centre[1]
-
-    return [[x, y] for x, y in zip(xs, ys)]
-
-
 board: Board = KiCAD7Board.load_from_file(INPUT_BOARD)
 
 priority = 1
@@ -59,6 +49,7 @@ priority = 1
 bbox = board.get_bounding_box()
 layers = board.get_layers()
 pads = board.get_pads()
+vias = board.get_vias()
 
 
 csx = ContinuousStructure()
@@ -72,7 +63,7 @@ substrate.AddBox(*bbox, priority = priority)
 priority += 1
 
 
-for layer in layers:
+for layer in reversed(layers):
 
     material = csx.AddMetal(layer.name + "_Cu")
     polygons = layer.polygons
@@ -90,6 +81,18 @@ for layer in layers:
         points = np.array(polygon).T
         material.AddPolygon(points, "z", depth, priority = priority)
         priority += 1
+
+
+via_material = csx.AddMetal("vias")
+
+for via in vias:
+
+    # Assuming vias go all the way through the board
+    start = (via.position[0], via.position[1], 0)
+    stop  = (via.position[0], via.position[1], bbox[-1][-1])
+    radius = via.inner_diameter / 2
+    via_material.AddCylinder(start, stop, radius, priority = priority)
+    priority += 1
 
 
 source_start = (141.275, 99.95, 0)
@@ -132,6 +135,9 @@ port = sim.AddLumpedPort(1, FEED_R, source_start, source_end, "y", 1.0, edges2gr
 mesh.SmoothMeshLines("all", mesh_res)
 nf2ff = sim.CreateNF2FFBox()
 
+
+csx.Write2XML("test.xml")
+exit()
 
 
 sim.Run(RESULTS_DIR, verbose = 3, numThreads = NUM_THREADS)
