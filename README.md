@@ -14,8 +14,13 @@ mesh.
 
 ## Roadmap
 
-- [ ] Produce polygons describing continuous copper areas on all layers.
+For KiCAD 7/8:
+
+- [x] Produce polygons describing continuous copper areas on all layers.
       (Ideally single polygon per area.)
-- [ ] Produce vias and plated through holes at prescribed positions that provide electrical
+- [x] Produce vias and plated through holes at prescribed positions that provide electrical
       connection and air gap in the middle.
 - [ ] Improve meshing beyond automatic utility provided by openEMS and guess/check.
+
+Note: The completed goals have been validated on `examples/kicad7/ti_ant.kicad_pcb` and are only
+ready as a prototype.
